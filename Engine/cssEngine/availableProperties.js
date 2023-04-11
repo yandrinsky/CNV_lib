@@ -2,7 +2,7 @@
 const availableProperties = [
     "padding", "color",
     "backgroundColor", "zIndex",
-    "lineWidth", "radius",
+    "width", "radius",
     "position",
     "fontFamily", "fontSize",
     "visibility"

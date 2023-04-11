@@ -1,90 +1,81 @@
-import {cssEngine} from "../cssEngine/cssEngine";
-import {moveTo} from "../geometry/geometry";
-import CNV from "../../library";
+import { moveTo } from '../geometry/geometry';
+import Store from '../../Store';
 
 //props: link, css, context, shift
-function lineRender(props){
-    const style = cssEngine({
-        css: props.css,
-        classes: props.link.classList,
-        type: props.link.type,
-        ownStyle: props.link.style,
-    });
+function lineRender({ link }) {
+    const style = link.getCSS();
+    const { context, shift } = Store.state;
 
-    let x1 = (props.link.start.x + props.shift.x) / props.zoom;
-    let x2 = (props.link.end.x + props.shift.x) / props.zoom;
-    let xCheck = (props.link.check.x + props.shift.x) / props.zoom;
+    const coords = style.position === 'sticky' ? link.getCoords() : link.getShiftCoords();
 
-    let y1 = (props.link.start.y + props.shift.y) / props.zoom;
-    let y2 = (props.link.end.y + props.shift.y) / props.zoom;
-    let yCheck = (props.link.check.y + props.shift.y) / props.zoom;
+    const {
+        start: { x: x1, y: y1 },
+        end: { x: x2, y: y2 },
+        check: { x: xCheck, y: yCheck }
+    } = coords;
 
-    if(!(style.visibility === "hidden")){
-        //console.log("style.dashOffset", style.dashOffset);
-        if(style.dash){
-            props.context.setLineDash([6, 10]);
+    if (!(style.visibility === 'hidden')) {
+        if (style.dash) {
+            context.setLineDash([6, 10]);
         } else {
-            props.context.setLineDash([]);
+            context.setLineDash([]);
         }
 
-        if(!props.link.pointer){
-            if(style.border){
-                props.context.beginPath();
-                props.context.moveTo(x1, y1);
-                props.context.quadraticCurveTo(
-                    xCheck,
-                    yCheck,
-                    x2,
-                    y2,
-                );
+        const isStraight = link.start.x === link.check.x && link.start.y === link.check.y;
 
-                props.context.lineWidth = style.lineWidth + style.border.width;
-                props.context.strokeStyle = style.border.color; //config.color;
-                props.context.stroke();
-            }
+        // if (!link.pointer && isStraight) {
+        context.beginPath();
+        context.moveTo(x1, y1);
+        context.lineTo(x2, y2);
 
-            props.context.beginPath();
-            props.context.moveTo(x1, y1);
-            props.context.quadraticCurveTo(
-                xCheck,
-                yCheck,
-                x2,
-                y2,
-            );
+        context.lineWidth = style.width;
+        context.strokeStyle = style.color;
+        context.stroke();
+        // }
 
-            props.context.lineWidth = style.lineWidth;
-            props.context.strokeStyle = style.color; //config.color;
-            props.context.stroke();
-        }else if(props.link.pointer && props.link.start.x === props.link.check.x && props.link.start.y === props.link.check.y){
-            props.context.beginPath();
-            props.context.moveTo(x1, y1);
-            const shape = CNV.getElementByUniqueId(props.link.id);
-            const equation = shape.system.equation;
-            const endPosition = moveTo(equation, -5);
-            props.context.lineTo(endPosition.x + props.shift.x, endPosition.y + props.shift.y);
-            props.context.lineWidth = style.lineWidth;
-            props.context.strokeStyle = style.color; //config.color;
-            props.context.stroke();
-        } else {
-            props.context.beginPath();
-            props.context.moveTo(x1, y1);
-            // props.context.quadraticCurveTo(props.link.check.x, props.link.check.y, props.link.end.x, props.link.end.y);
-            // props.context.lineWidth = style.lineWidth;
-            // props.context.strokeStyle = style.color; //config.color;
-            // props.context.stroke();
+        //TODO переделать. внизу получается, что даже если у нас прямая, мы строим ее как кривую.
 
-            props.context.quadraticCurveTo(
-                props.link.check.x + props.shift.x,
-                props.link.check.y + props.shift.y,
-                props.link.end.x + props.shift.x,
-                props.link.end.y + props.shift.y,
-            );
-
-            props.context.lineWidth = style.lineWidth;
-            props.context.strokeStyle = style.color; //config.color;
-            props.context.stroke();
-        }
-
+        // if (!link.pointer) {
+        //     if (style.border) {
+        //         context.beginPath();
+        //         context.moveTo(x1, y1);
+        //         context.quadraticCurveTo(xCheck, yCheck, x2, y2);
+        //
+        //         context.lineWidth = style.width + style.border.width;
+        //         context.strokeStyle = style.border.color;
+        //         context.stroke();
+        //     }
+        //
+        //     context.beginPath();
+        //     context.moveTo(x1, y1);
+        //     context.quadraticCurveTo(xCheck, yCheck, x2, y2);
+        // } else if (link.pointer && isStraight) {
+        //     context.beginPath();
+        //     context.moveTo(x1, y1);
+        //
+        //     const shape = Store.state.shapes[link.id];
+        //     const equation = shape.system.equation;
+        //     const endPosition = moveTo(equation, -5);
+        //
+        //     context.lineTo(
+        //         endPosition.x + (style.position === 'sticky' ? 0 : shift.x),
+        //         endPosition.y + (style.position === 'sticky' ? 0 : shift.y)
+        //     );
+        // } else {
+        //     context.beginPath();
+        //     context.moveTo(x1, y1);
+        //
+        //     context.quadraticCurveTo(
+        //         link.check.x + shift.x,
+        //         link.check.y + shift.y,
+        //         link.end.x + shift.x,
+        //         link.end.y + shift.y
+        //     );
+        // }
+        //
+        // context.lineWidth = style.width;
+        // context.strokeStyle = style.color;
+        // context.stroke();
     }
 }
 

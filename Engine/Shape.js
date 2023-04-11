@@ -1,251 +1,299 @@
-import CNV from "../library";
-import {getCoordinates, getEquationFor2points, length, moveTo} from "./geometry/geometry"
-import availableProperties from "./cssEngine/availableProperties";
+import { getCoordinates, length, moveTo } from './geometry/geometry';
+import availableProperties from './cssEngine/availableProperties';
+import { render } from './render';
+import Store from '../Store';
+import { getEquationFrom2Points } from './geometry/line/get-equation-from-2-points';
+import { clickRegister } from './events-engine/events-register/click-register';
+import { mouseupRegister } from './events-engine/events-register/mouseup-register';
+import { mousedownRegister } from './events-engine/events-register/mousedown-register';
+import { mouseleaveRegister } from './events-engine/events-register/mouseleave-register';
+import { mouseoverRegister } from './events-engine/events-register/mouseover-register';
+import { mouseenterRegister } from './events-engine/events-register/mouseenter-register';
+import selfEvent from './events-engine/selfEvent';
 
-class Shape{
+class Shape {
     constructor(link, id) {
         this.link = link;
         this.id = id;
         this.isPointer = false;
 
         this.styleProp = {};
+
         availableProperties.forEach(property => {
             link = this.link;
+
             Object.defineProperty(this.styleProp, property, {
-                get: function (){
+                get: function () {
                     return link.style[property];
                 },
 
-                set: function (arg){
+                set: function (arg) {
                     link.style[property] = arg;
-                    CNV.render();
-                },
-            })
-        })
+                    render();
+                }
+            });
+        });
 
+        mouseoverRegister({ id: this.id });
+        mouseenterRegister({ id: this.id });
+        mouseleaveRegister({ id: this.id });
+        mouseupRegister({ id: this.id });
+        mousedownRegister({ id: this.id });
+        clickRegister({ id: this.id });
     }
 
-    get system(){
+    get system() {
         const __this = this;
+
         return {
-            get equation(){
-                if(__this.link.type === "line"){
-                    let eq = getEquationFor2points(
+            get equation() {
+                if (__this.link.type === 'line') {
+                    let eq = getEquationFrom2Points(
                         __this.link.start.x,
                         __this.link.start.y,
                         __this.link.end.x,
-                        __this.link.end.y,
-                    )
+                        __this.link.end.y
+                    );
+
                     eq.x3 = __this.link.check.x;
                     eq.y3 = __this.link.check.y;
                     eq.target = __this;
+
                     return eq;
                 }
             },
-            get coordinates(){
+
+            get coordinates() {
                 let x1 = __this.link.start.x;
                 let y1 = __this.link.start.y;
                 let x2 = __this.link.end?.x;
                 let y2 = __this.link.end?.y;
                 let x3 = __this.link.check?.x;
                 let y3 = __this.link.check?.y;
-                return {x1, y1, x2, y2, x3, y3};
+                return { x1, y1, x2, y2, x3, y3 };
             },
-            getCoordinatesX(y){
+
+            getCoordinatesX(y) {
                 return getCoordinates(this.equation, undefined, y);
             },
-            getCoordinatesY(x){
+
+            getCoordinatesY(x) {
                 return getCoordinates(this.equation, x, undefined);
             },
-            moveTo(move, x){
+
+            moveTo(move, x) {
                 return moveTo(this.equation, move, x);
             },
-            get length(){
+
+            get length() {
                 return length(this.equation);
             },
 
-        }
-    }
-    get classList(){
-        let link = this.link;
-        return {
-            add(className){
-                if(!link.classList.includes(className)){
-                    link.classList.push(className)
-                    CNV.render();
-                }
-            },
-            remove(className){
-                const index = link.classList.indexOf(className);
-                if(index !== -1){
-                    link.classList.splice(index, 1);
-                    CNV.render();
-                }
-            },
-            toggle(className){
-                const index = link.classList.indexOf(className);
-                if(index !== -1){
-                    link.classList.splice(index, 1);
-                    CNV.render();
-                } else {
-                    link.classList.push(className);
-                    CNV.render();
-                }
-            },
-            contains(className){
-                return link.classList.includes(className);
+            getID() {
+                return __this.id;
             }
-        }
+        };
     }
 
-    get style(){
+    get classList() {
+        let link = this.link;
+
+        return {
+            add(className) {
+                if (!link.classList.includes(className)) {
+                    link.classList.push(className);
+                    render();
+                }
+            },
+
+            remove(className) {
+                const index = link.classList.indexOf(className);
+                if (index !== -1) {
+                    link.classList.splice(index, 1);
+                    render();
+                }
+            },
+
+            toggle(className) {
+                const index = link.classList.indexOf(className);
+                if (index !== -1) {
+                    link.classList.splice(index, 1);
+                    render();
+                } else {
+                    link.classList.push(className);
+                    render();
+                }
+            },
+
+            contains(className) {
+                return link.classList.includes(className);
+            }
+        };
+    }
+
+    get style() {
         return this.styleProp;
     }
 
-    get update(){
+    get update() {
         const link = this.link;
+
         return {
-
-            get check(){
+            get check() {
                 return {
-                    set x(x){
+                    set x(x) {
                         link.check.x = x;
-                        CNV.render();
+                        render();
                     },
-                    set y(y){
+                    set y(y) {
                         link.check.y = y;
-                        CNV.render();
+                        render();
                     }
-                }
+                };
             },
 
-            get start(){
+            get start() {
                 return {
-                    set x(x){
+                    set x(x) {
                         link.start.x = x;
-                        CNV.render();
+                        render();
                     },
-                    set y(y){
+                    set y(y) {
                         link.start.y = y;
-                        CNV.render();
+                        render();
                     }
-                }
+                };
             },
 
-            get startPosition (){
+            get startPosition() {
                 return {
-                    set x(x){
+                    set x(x) {
                         link.start.x = x;
-                        CNV.render();
+                        render();
                     },
-                    set y(y){
+                    set y(y) {
                         link.start.y = y;
-                        CNV.render();
+                        render();
                     }
-                }
+                };
             },
 
-            get end(){
-                if(link.type === "line"){
+            get end() {
+                if (link.type === 'line') {
                     return {
-                        set x(x){
+                        set x(x) {
                             link.end.x = x;
-                            CNV.render();
+                            render();
                         },
-                        set y(y){
+                        set y(y) {
                             link.end.y = y;
-                            CNV.render();
+                            render();
                         }
-                    }
+                    };
                 }
             },
 
-            get endPosition (){
-                if(link.type === "line"){
+            get endPosition() {
+                if (link.type === 'line') {
                     return {
-                        set x(x){
+                        set x(x) {
                             link.end.x = x;
-                            CNV.render();
+                            render();
                         },
-                        set y(y){
+                        set y(y) {
                             link.end.y = y;
-                            CNV.render();
+                            render();
                         }
-                    }
+                    };
                 }
             },
 
-            set width (newWidth){
+            set width(newWidth) {
                 link.width = newWidth;
-                CNV.render();
+                render();
             },
 
-            set height (newHeight){
+            set height(newHeight) {
                 link.height = newHeight;
-                CNV.render();
+                render();
+            },
+
+            set text(text) {
+                link.text = text;
+                render();
             }
-        }
+        };
     }
 
-    set pointer(bool){
+    set pointer(bool) {
         this.isPointer = !!bool;
-        this.link.pointer = this.isPointer
+        this.link.pointer = this.isPointer;
     }
 
-    set onmouseover(callback){
-        CNV.state.mouseover[this.id] = callback;
-        if(!CNV.state.__mouseMoveTargets.includes(this.id)){
-            CNV.state.__mouseMoveTargets.push(this.id)
-        }
+    set onmouseover(callback) {
+        Store.state.mouseover[this.id][0] = callback;
     }
 
-    set onmouseenter(callback){
-        CNV.state.mouseenter[this.id] = callback;
-        if(!CNV.state.__mouseMoveTargets.includes(this.id)){
-            CNV.state.__mouseMoveTargets.push(this.id)
-        }
+    set onmouseenter(callback) {
+        Store.state.mouseenter[this.id][0] = callback;
     }
 
-    set onmouseleave(callback){
-        CNV.state.mouseleave[this.id] = callback;
-        if(!CNV.state.__mouseMoveTargets.includes(this.id)){
-            CNV.state.__mouseMoveTargets.push(this.id)
-        }
+    set onmouseleave(callback) {
+        Store.state.mouseleave[this.id][0] = callback;
     }
 
-    set onclick(callback){
-        if(!CNV.state.__mouseClickTargets.includes(this.id)){
-            CNV.state.__mouseClickTargets.push(this.id)
-        }
-        CNV.state.click[this.id] = callback;
+    set onclick(callback) {
+        Store.state.click[this.id][0] = callback;
     }
 
-    get isLine(){
-        let distance = 3;
-        return Math.abs(this.link.start.x - this.link.check.x) < distance && Math.abs(this.link.start.y - this.link.check.y) < distance;
+    set onmouseup(callback) {
+        Store.state.mouseup[this.id][0] = callback;
     }
 
-    remove(){
+    set onmousedown(callback) {
+        Store.state.mousedown[this.id][0] = callback;
+    }
+
+    set ondrag(callback) {
+        const move = e => {
+            callback(selfEvent(e, Store.state.shapes[this.id]));
+        };
+
+        Store.state.mousedown[this.id][1] = e => {
+            Store.state.canvas.addEventListener('mousemove', move);
+        };
+
+        Store.state.mouseup[Store.state.layout.link.id][this.id] = e => {
+            Store.state.canvas.removeEventListener('mousemove', move);
+        };
+    }
+
+    remove() {
         //удаляем информацию
-        delete CNV.state.__shapes[this.id];
+        delete Store.state.__shapes[this.id];
         //удаляем инстанс класса
-        delete CNV.state.shapes[this.id];
+        delete Store.state.shapes[this.id];
+
         //удаляем слушатели событий
-        delete CNV.state.mouseenter[this.id];
-        delete CNV.state.mouseleave[this.id];
-        delete CNV.state.mouseenter[this.id];
-        delete CNV.state.click[this.id];
+        delete Store.state.mouseenter[this.id];
+        delete Store.state.mouseleave[this.id];
+        delete Store.state.mouseup[this.id];
+        delete Store.state.mousedown[this.id];
+        delete Store.state.click[this.id];
 
-        let MMT = CNV.state.__mouseMoveTargets;
-        let MCT = CNV.state.__mouseClickTargets;
+        //Событие ondrag
+        delete Store.state.mouseup[Store.state.layout.link.id][this.id];
 
-        if(MMT.indexOf(this.id) >= 0){
+        let MMT = Store.state.__mouseMoveTargets;
+        let MCT = Store.state.__mouseClickTargets;
+
+        if (MMT.indexOf(this.id) >= 0) {
             MMT.splice(MMT.indexOf(this.id), 1);
         }
-        if(MCT.indexOf(this.id) >= 0){
+        if (MCT.indexOf(this.id) >= 0) {
             MCT.splice(MCT.indexOf(this.id), 1);
         }
-        CNV.render();
+        render();
     }
 }
 

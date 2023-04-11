@@ -1,30 +1,23 @@
-import {cssEngine} from "../cssEngine/cssEngine";
+import Store from '../../Store';
 
-function textRender(props){
-    const style = cssEngine({
-        css: props.css,
-        classes: props.link.classList,
-        type: props.link.type,
-        ownStyle: props.link.style,
-    });
+export const textRender = ({ link }) => {
+    const style = Store.state.styleEngine.getShapeStyles(link);
+    const { context } = Store.state;
 
-    let coords = props.link.getCoords();
-    let x = coords.start.x;
-    let y = coords.start.y;
+    const coords = style.position === 'sticky' ? link.getCoords() : link.getShiftCoords();
+    const {
+        start: { x, y },
+        padding
+    } = coords;
 
-    props.context.font = `${style.fontSize} ${style.fontFamily}`;
+    context.font = `${style.fontSize} ${style.fontFamily}`;
 
-    let info = props.context.measureText(props.link.text);
-    let padding = Number(String(style.padding).split("px")[0]);
-
-    if(style.backgroundColor){
-        props.context.beginPath();
-        props.context.fillStyle = style.backgroundColor;
-        props.context.fillRect(x - padding, y + 2 + padding, info.width + padding * 2, -Number(style.fontSize.split("px")[0]) - padding * 2)
+    if (style.backgroundColor) {
+        context.beginPath();
+        context.fillStyle = style.backgroundColor;
+        context.fillRect(x, y, link.getSize().width, -link.getSize().height);
     }
 
-    props.context.fillStyle = style.color;
-    props.context.fillText(props.link.text, x, y);
-}
-
-export default textRender;
+    context.fillStyle = style.color;
+    context.fillText(link.text, x + padding, y - padding);
+};

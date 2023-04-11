@@ -1,50 +1,72 @@
-import CNV from "../library";
-import {nearDot} from "./geometry/geometry";
-import Store from "../Store";
-import mousePosition from "../../mousePosition";
+import Store from '../Store';
+import mousePosition from './events-engine/mousePosition';
+import { nearDot } from './geometry';
+import { render } from './render';
+import { createText } from '../library/create/createText';
+import { preventRender } from '../library/prevent-render';
 
-function dragCanvas(){
-    function onMouseDown (e){
-        if(CNV.state.draggableCanvas){
-            for(let i = 0; i < CNV.state.__mouseClickTargets.length; i++){
-                let link = CNV.state.__shapes[CNV.state.__mouseClickTargets[i]];
-                let [clientX, clientY] = mousePosition(e);
-                let res = nearDot({
-                    distance: 5,
-                    userX: clientX,
-                    userY: clientY,
-                    x0: link.start.x + CNV.state.shift.x,
-                    y0: link.start.y + CNV.state.shift.y,
-                    e: e,
-                })
-                if(res) return;
+function onMouseDown(e) {
+    if (Store.state.draggableCanvas) {
+        for (let i = 0; i < Store.state.__mouseClickTargets.length; i++) {
+            let link = Store.state.__shapes[Store.state.__mouseClickTargets[i]];
+            let [clientX, clientY] = mousePosition(e);
+
+            let res = nearDot({
+                distance: 5,
+                userX: clientX,
+                userY: clientY,
+                circle: link,
+                e: e
+            });
+
+            if (res) {
+                return;
             }
-            CNV.canvas.style.cursor = "grab"
-            CNV.canvas.addEventListener("mousemove", onMouseMove);
         }
-    }
 
-    function onMouseUp(e){
-        if(CNV.state.draggableCanvas){
-            CNV.canvas.style.cursor = "default"
-            CNV.canvas.removeEventListener("mousemove", onMouseMove);
-        }
-    }
-
-    CNV.canvas.addEventListener("mousedown", onMouseDown);
-    CNV.canvas.addEventListener("mouseup", onMouseUp);
-
-    function onMouseMove(e) {
-        CNV.canvas.style.cursor = "grabbing"
-        if(CNV.state.draggableCanvas){
-            CNV.state.shift.x += e.movementX;
-            CNV.state.shift.y += e.movementY;
-            if(Store.draggableCanvasObserver) {
-                Store.draggableCanvasObserver(CNV.state.shift.x, CNV.state.shift.y);
-            }
-            CNV.render();
-        }
+        Store.state.canvas.style.cursor = 'grab';
+        Store.state.canvas.addEventListener('mousemove', onMouseMove);
     }
 }
 
-export default dragCanvas;
+function onMouseUp(e) {
+    if (Store.state.draggableCanvas) {
+        Store.state.canvas.style.cursor = 'default';
+        Store.state.canvas.removeEventListener('mousemove', onMouseMove);
+    }
+}
+
+function onMouseMove(e) {
+    Store.state.canvas.style.cursor = 'grabbing';
+
+    if (Store.state.draggableCanvas) {
+        Store.state.shift.x += e.movementX;
+        Store.state.shift.y += e.movementY;
+
+        if (Store.state.draggableCanvasObserver) {
+            Store.state.draggableCanvasObserver(Store.state.shift.x, Store.state.shift.y);
+        }
+
+        preventRender(() => {
+            Store.state.__shapes[
+                Store.state.systemShapes['shiftIndicator'].system.getID()
+            ]?.updateText(`${Store.state.shift.x} ${Store.state.shift.y}`);
+        });
+
+        render();
+    }
+}
+
+export const dragCanvas = () => {
+    if (Store.state.draggableCanvas) {
+        Store.state.systemShapes['shiftIndicator'] = createText({
+            x0: Store.state.canvas.width - 50,
+            y0: Store.state.canvas.height - 10,
+            text: '0 0',
+            className: 'text'
+        });
+    }
+
+    Store.state.canvas.addEventListener('mousedown', onMouseDown);
+    Store.state.canvas.addEventListener('mouseup', onMouseUp);
+};

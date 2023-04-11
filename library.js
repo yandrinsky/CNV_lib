@@ -1,140 +1,121 @@
-import {querySelectorEngine, querySelectorAllEngine} from "./Engine/cssEngine/selecting";
-import mouseMoveEngine from "./Engine/eventsHandles/mouseMoveEngine";
-import mouseClickEngine from "./Engine/eventsHandles/mouseClickEngine";
-import dragCanvas from "./Engine/dragCanvas";
+import { querySelectorEngine, querySelectorAllEngine } from './Engine/cssEngine/selecting';
+import mouseMoveEngine from './Engine/events-engine/mouseMoveEngine';
+import { mouseClickEngine } from './Engine/events-engine/mouse-click-engine/mouse-click-engine';
 
-import Shape from "./Engine/Shape";
-import render from "./Engine/render/render";
-import Store from "./Store";
-import Line from "./Templates/Line";
-import Circle from "./Templates/Circle";
-import Text from "./Templates/Text";
-import Rectangle from "./Templates/Rectangle";
-import {collision} from "./Engine/geometry/geometry";
+import { dragCanvas } from './Engine/dragCanvas';
 
-function create(link){
-    this.state.__shapes[link.id] = link;
-    let shape = new Shape(link, link.id);
-    this.state.shapes[link.id] = shape;
+import Shape from './Engine/Shape';
+import { render } from './Engine/render';
+import Store from './Store';
+import Line from './link-templates/Line';
+import Circle from './link-templates/Circle';
+import Text from './link-templates/Text';
+import Rectangle from './link-templates/Rectangle';
+import { collision } from './Engine/geometry/geometry';
+import { StyleEngine } from './Engine/styleEngine';
+import { createLine } from './library/create/createLine';
+import { createText } from './library/create/createText';
+import { createCircle } from './library/create/createCircle';
+import { createRect } from './library/create/createRect';
+import { preventRender } from './library/prevent-render';
+import { CSS } from './css';
 
-    CNV.render();
-    return shape;
-}
-
-const CNV = {
-    context: undefined,
-    canvas: undefined,
-    css: undefined,
-    state: (()=> {
+export class CNV {
+    constructor({ context, canvas, css = {}, settings = {} }) {
         Store.initState();
-        return Store.getState();
-    })(),
+        this.getState = () => Store.getState();
 
-    setCanvas(canvas){
-        this.canvas = canvas;
-    },
+        Store.state.context = context;
+        Store.state.canvas = canvas;
+        Store.state.styleEngine = new StyleEngine({ css: { ...CSS, ...css } });
+        Store.state.draggableCanvas = !!settings.draggableCanvas;
+        Store.state.userState = {};
 
-    setContext(context){
-        this.context = context;
-    },
+        this.start();
+    }
 
-    setCSS(css){
-        this.css = css;
-    },
-
-    start(){
+    start() {
         dragCanvas();
-        this.canvas.addEventListener("mousemove", mouseMoveEngine.bind(this));
-        this.canvas.addEventListener("click", mouseClickEngine.bind(this));
+
+        Store.state.canvas.addEventListener('mousemove', mouseMoveEngine);
+        Store.state.canvas.addEventListener('click', mouseClickEngine);
+        Store.state.canvas.addEventListener('mousedown', mouseClickEngine);
+        Store.state.canvas.addEventListener('mouseup', mouseClickEngine);
+
+        Store.state.layout = this.createRect({
+            x0: 0,
+            y0: 0,
+            width: Store.state.canvas.clientWidth,
+            height: Store.state.canvas.clientHeight,
+            className: '_Layout'
+        });
+
         this.render();
-    },
+    }
 
-    settings: {
-        set draggableCanvas(flag){
-            CNV.state.draggableCanvas = !!flag;
-        },
-        set draggableCanvasObserver(observer){
-            Store.draggableCanvasObserver = observer;
-        },
-    },
+    get settings() {
+        return {
+            set draggableCanvas(flag) {
+                Store.state.draggableCanvas = !!flag;
+            },
+            set draggableCanvasObserver(observer) {
+                Store.state.draggableCanvasObserver = observer;
+            }
+        };
+    }
 
+    querySelector(selector) {
+        return querySelectorEngine(selector, Store.state.__shapes, Store.state.shapes);
+    }
 
-    querySelector(selector){
-        return querySelectorEngine(selector, this.state.__shapes, this.state.shapes);
-    },
+    querySelectorAll(selector) {
+        return querySelectorAllEngine(selector, Store.state.__shapes, Store.state.shapes);
+    }
 
-    querySelectorAll(selector){
-        return querySelectorAllEngine(selector, this.state.__shapes, this.state.shapes);
-    },
+    getElementByUniqueId(id) {
+        return Store.state.shapes[id];
+    }
 
-    getElementByUniqueId(id){
-        return this.state.shapes[id];
-    },
+    createLine = config => createLine(config);
+    createRect = config => createRect(config);
+    createText = config => createText(config);
+    createCircle = config => createCircle(config);
 
-    createLine(config){
-        let link = new Line(config);
-        return create.call(this, link);
-    },
+    render = () => render();
 
-    createText(config){
-        let link = new Text(config);
-        return create.call(this, link);
-    },
+    get layout() {
+        return this.querySelector('._Layout');
+    }
 
-    createCircle(config){
-        let link = new Circle(config);
-        return create.call(this, link);
-    },
+    lineCollision(line1, line2) {
+        return collision(line1.system.equation, line2.system.equation);
+    }
 
-    createRect(config){
-        let link = new Rectangle(config);
-        return create.call(this, link);
-    },
+    preventRender = callback => preventRender(callback);
 
-    text(config){
-        this.context.font = `${config.fontSize || 14}px serif`;
-        this.context.fillStyle = config.color || "black";
-        this.context.fillText(config.text, config.x, config.y);
-    },
+    combineRender(callback) {
+        this.preventRender(callback);
+        this.render();
+    }
 
-    render(){
-        if(this.state.shouldRenderUpdates){
-            render({
-                css: this.css,
-                canvas: this.canvas,
-                context: this.context,
-                shift: this.state.shift,
-                elements: this.state.__shapes,
-                zoom: this.state.zoom,
-            })
-        }
-    },
+    get canvas() {
+        return Store.state.canvas;
+    }
 
-    lineCollision(line1, line2, mode){
-        return collision(line1.system.equation, line2.system.equation, mode);
-    },
+    get state() {
+        return Store.state.userState;
+    }
 
-    preventRender(callback){
-        this.state.shouldRenderUpdates = false;
-        callback();
-        this.state.shouldRenderUpdates = true;
-    },
-
-    combineRender(callback){
-        this.state.shouldRenderUpdates = false;
-        callback();
-        this.state.shouldRenderUpdates = true;
-        CNV.render();
-    },
-
-    save(){
+    save() {
         let state = Store.getState();
+
         let preparedStore = {
             __shapes: {},
             draggableCanvas: state.draggableCanvas,
-            shift: state.shift,
-        }
-        for(let key in state.__shapes) {
+            shift: state.shift
+        };
+
+        for (let key in state.__shapes) {
             let link = state.__shapes[key];
             preparedStore.__shapes[key] = {
                 className: link.classList,
@@ -151,26 +132,26 @@ const CNV = {
                 width: link.width,
                 height: link.height,
                 pointer: link.pointer,
-                style: link.style,
-            }
+                style: link.style
+            };
         }
         return JSON.stringify(preparedStore);
-    },
+    }
 
-    recover(data){
-        const state = {...Store.createState(), ...JSON.parse(data)};
+    recover(data) {
+        const state = { ...Store.createState(), ...JSON.parse(data) };
 
-        for(let key in state.__shapes) {
-            let oldLink = state.__shapes[key]
+        for (let key in state.__shapes) {
+            let oldLink = state.__shapes[key];
             let link = oldLink;
             let pointer = link.pointer;
 
-            if(link.type === "line") link = new Line({...link});
-            else if(link.type === "circle") link = new Circle({...link});
-            else if(link.type === "text") link = new Text({...link});
-            else if(link.type === "rect") link = new Rectangle({...link});
+            if (link.type === 'line') link = new Line({ ...link });
+            else if (link.type === 'circle') link = new Circle({ ...link });
+            else if (link.type === 'text') link = new Text({ ...link });
+            else if (link.type === 'rect') link = new Rectangle({ ...link });
 
-            for(let key in oldLink.style) {
+            for (let key in oldLink.style) {
                 link.style[key] = oldLink.style[key];
             }
 
@@ -178,10 +159,10 @@ const CNV = {
             state.shapes[key] = new Shape(link, key);
             state.shapes[key].pointer = pointer;
         }
+
         Store.setState(state);
-        this.state = Store.getState();
+        Store.state = Store.getState();
+
         this.render();
     }
 }
-
-export default CNV;

@@ -1,23 +1,35 @@
-import {cssEngine} from "../cssEngine/cssEngine";
-//props: link, context, css, shift
-function circleRender(props){
-    const style = cssEngine({
-        css: props.css,
-        classes: props.link.classList,
-        type: props.link.type,
-        ownStyle: props.link.style,
-    });
+import Store from "../../Store";
+
+function circleRender({link}){
+    const style = Store.state.styleEngine.getShapeStyles(link);
+    const {context, shift} = Store.state;
+    
     if(!(style.visibility === "hidden")){
         if(style.border){
-            props.context.beginPath();
-            props.context.fillStyle = style.border.color;
-            props.context.arc(props.link.start.x + props.shift.x, props.link.start.y + props.shift.y, style.radius + style.border.width, style.startAngle, style.endAngle);
-            props.context.fill();
+            context.beginPath();
+            context.fillStyle = style.border.color;
+            context.arc(
+                link.start.x + shift.x,
+                link.start.y + shift.y,
+                style.radius + style.border.width,
+                style.startAngle,
+                style.endAngle
+            );
+            context.fill();
         }
-        props.context.beginPath();
-        props.context.fillStyle = style.color;
-        props.context.arc(props.link.start.x + props.shift.x, props.link.start.y + props.shift.y, style.radius, style.startAngle, style.endAngle);
-        props.context.fill();
+
+        context.beginPath();
+        context.fillStyle = style.color;
+
+        context.arc(
+            link.start.x + shift.x,
+            link.start.y + shift.y,
+            style.radius,
+            style.startAngle,
+            style.endAngle
+        );
+
+        context.fill();
     }
 }
 
